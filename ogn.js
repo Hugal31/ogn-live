@@ -764,7 +764,7 @@ function redraw(pol) {
 	var lo = mrk.get('lon');
 	
   mrk.set('tra', 1);
-  downloadUrl(tld + '/' + cxml1 + '?id=' + p + "&l=" + lo, function(data) {
+  downloadUrl(ognTld + '/' + cxml1 + '?id=' + p + "&l=" + lo, function(data) {
     var vtrace = data.documentElement.getElementsByTagName("m");
     var err = parseFloat(vtrace[0].getAttribute("e"));
     var idd = vtrace[0].getAttribute("i");
@@ -826,7 +826,7 @@ function reclbox() {
 
 function checkrec() {
 	
-  downloadUrl(tld + '/' + rxml, function(data) {
+  downloadUrl(ognTld + '/' + rxml, function(data) {
     var vlrec = data.documentElement.getElementsByTagName("m");
     var err = parseFloat(vlrec[0].getAttribute("e"));
     if (err === 0 && vlrec.length > 1) {
@@ -933,7 +933,7 @@ function affinfo(mark) {
 		document.getElementById("acfi").innerHTML = "<A HREF='https://ktrax.kisstech.ch/plot?device=" + fi + "' target='_blank' onclick=\"event.stopPropagation();\">" + fi + "</a>";
     document.getElementById("acif").innerHTML = "<A HREF='https://www.google.com/search?nfpr=1&q=\"" + rg + "\"' target='_blank' onclick=\"event.stopPropagation();\">Infos</a>&nbsp;&nbsp;&nbsp;&nbsp;<A HREF='https://www.google.com/search?nfpr=1&q=\"" + rg + "\"&tbm=isch' target='_blank' onclick=\"event.stopPropagation();\">Pictures</a>";
     if (mrk.get('dinfo') === "") {
-      downloadUrl(tld + '/' + dxml + '?i=' + mark + '&f=' + fi, function(data) {
+      downloadUrl(ognTld + '/' + dxml + '?i=' + mark + '&f=' + fi, function(data) {
         var dat = data.documentElement.getElementsByTagName("m");
         var err = parseFloat(dat[0].getAttribute("g"));
         var mrk = dat[0].getAttribute("i");
@@ -1069,7 +1069,7 @@ function gesmark() {
   }
 
   ++nbreq;
-  downloadUrl(tld + '/' + cxml + "?a=" + all + boundc + recc + parc + tz + hashy, function(data) {
+  downloadUrl(ognTld + '/' + cxml + "?a=" + all + boundc + recc + parc + tz + hashy, function(data) {
     ++w;
     var planeurs = data.documentElement.getElementsByTagName("m");
     online.length = 0;
@@ -1189,7 +1189,7 @@ function gesmark() {
 					image: new ol.style.Icon({
 						anchor: [0.5, 1],
 						opacity: visib,
-						src: "" + tld + "/markers/" + cn + ftypec[typ * 1] + ".png"
+						src: "" + ognTld + "/markers/" + cn + ftypec[typ * 1] + ".png"
 					})
 				}));
 				
@@ -1249,7 +1249,7 @@ function gesmark() {
 					window[markvar].setStyle(new ol.style.Style({
 							image: new ol.style.Icon({
 								anchor: [0.5, 1],
-								src: "" + tld + "/markers/" + cn + ftypec[typ * 1] + ".png"
+								src: "" + ognTld + "/markers/" + cn + ftypec[typ * 1] + ".png"
 							})
 					}));
 					window[markvar].set('off', 0);
@@ -1351,7 +1351,7 @@ function gesmark() {
 						window[markvar].setStyle(new ol.style.Style({
 							image: new ol.style.Icon({
 								anchor: [0.5, 1],
-								src: "" + tld + "/markers/" + cn + "_o.png"
+								src: "" + ognTld + "/markers/" + cn + "_o.png"
 							})
 						}));
 						window[markvar].set('off', 1);

@@ -73,6 +73,7 @@ var cxml1 = "livexml1.php";
 var dxml = "dataxml.php";
 var rxml = "rec.php";
 var tld = "<?php echo $prot.'://'.$_SERVER['HTTP_HOST'];?>";
+var ognTld = "https://live.glidernet.org";
 var vlon = <?php echo $lon; ?>;
 var vlat = <?php echo $lat; ?>;
 var bound = false;
