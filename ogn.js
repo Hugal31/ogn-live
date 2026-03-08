@@ -1062,6 +1062,322 @@ function baro_plot() {
 
 }
 
+function onFlightsUpdate(data) {
+  ++w;
+  var planeurs = data.documentElement.getElementsByTagName("m");
+  online.length = 0;
+  offline.length = 0;
+  var colcn;
+  var del = "N";
+
+  for (var i = 0; i < planeurs.length; i++) {
+    // récupération des données transmises pour ce planeur
+    var tab = planeurs[i].getAttribute("a").split(",");
+
+
+    var fid = tab[12];
+    if (wlt == 1) {
+      if (wlist.indexOf(fid) == -1) continue;
+    }
+    var ps = tab[3];
+    var lat = parseFloat(tab[0]);
+    var lon = parseFloat(tab[1]);
+    var cn = tab[2];
+    if (cn == "") cn = "_";
+
+    var alt = tab[4];
+    var tim = tab[5];
+    var ddf = tab[6];
+    var track = tab[7];
+    var speed = tab[8];
+    var vz = tab[9];
+    var typ = tab[10];
+    var rec = tab[11];
+
+    var crc = tab[13];
+
+
+    var posi = new ol.geom.Point(ol.proj.fromLonLat([lon,lat]));
+    var te = 0; //altitude sol
+    //      elevator.getElevationForLocations({'locations': [posi]}, function(results, status) {
+    //      if (status == google.maps.ElevationStatus.OK) {
+//          if (results[0]) {
+//            te = Math.round(results[0].elevation);
+//          }
+//        }
+//      });
+    var posiBaton = new ol.geom.Point(ol.proj.fromLonLat([lon,lat+(0.00001*(alt-te))]));
+
+
+    var polyvar = "P_" + crc;
+    var markvar = "M_" + crc;
+    var stickvar = "S_" + crc;
+    var barovar = "B_" + crc;
+    var visib = 1;
+
+
+    if (typeof(window[polyvar]) == 'undefined') // If aircraft not already created
+    {
+      // create path color for array
+        hcol = tcolor[ccolor];
+      if (hnew === true) visib = 0; // * false;
+
+        // create polyline
+
+      window[polyvar] = new ol.Feature({
+	geometry: new ol.geom.LineString([ol.proj.fromLonLat([lon,lat])])
+      });
+      window[polyvar].setStyle(new ol.style.Style({
+	stroke: new ol.style.Stroke({
+	  //color: '#' + hcol,			// version courte initiale
+	  color: [parseInt(hcol.substring(0,2), 16), parseInt(hcol.substring(2,4), 16), parseInt(hcol.substring(4), 16), visib ],		// version avec canal alpha pour cacher/afficher
+	  width: polwidth
+	})
+					
+      }));
+      try {
+	traceLayerSource.addFeature(window[polyvar]);
+				} catch(err) {
+				  console.log("Pol:");
+				  console.log(window[polyvar]);
+				}
+      window[polyvar].set('poly', "" + polyvar);
+      window[polyvar].set('visi', visib);
+      window[polyvar].set('col', "" + hcol);
+      window[polyvar].set('nom', "" + cn + " - " + ps);
+
+
+      // création du Baton d'altitude
+
+
+      window[stickvar] = new ol.Feature({
+	geometry: new ol.geom.LineString([ol.proj.fromLonLat([lon,lat])])
+      });
+      window[stickvar].setStyle(new ol.style.Style({
+	stroke: new ol.style.Stroke({
+	  color: [0, 0, 0, visib ],		// version avec canal alpha pour cacher/afficher // black for now
+	  // color: [parseInt(hcol.substring(0,2), 16), parseInt(hcol.substring(2,4), 16), parseInt(hcol.substring(4), 16), visib ],		// version avec canal alpha pour cacher/afficher
+	  width: polwidth
+	})
+
+      }));
+      window[stickvar].set('nom', "" + cn + " - " + ps);
+      window[stickvar].set('baton', "" + stickvar);
+      window[stickvar].set('col', "000000");		// stick color is black
+      sticksLayerSource.addFeature(window[stickvar]);
+
+      // création du Marker
+
+
+
+      window[markvar] = new ol.Feature({
+	geometry: posi,
+	title: cn + " - " + ps + " @ " + alt + "m",
+	//				id: markvar
+	lat: lat,
+	lon: lon
+      });
+
+      window[markvar].setStyle(new ol.style.Style({
+	image: new ol.style.Icon({
+	  anchor: [0.5, 1],
+	  opacity: visib,
+						src: "" + ognTld + "/markers/" + cn + ftypec[typ * 1] + ".png"
+	})
+      }));
+
+      window[markvar].set('poly', "" + polyvar);
+      window[markvar].set('mark', "" + markvar);
+      window[markvar].set('stick', "" + stickvar);
+      window[markvar].set('nom', "" + cn + " - " + ps);
+      window[markvar].set('cn', "" + cn);
+      window[markvar].set('reg', "" + ps);
+      if (fid == "0") fid = "hidden";
+      window[markvar].set('fid', "" + fid);
+      window[markvar].set('type', "" + typ);
+      window[markvar].set('icol', "" + ccolor);
+      window[markvar].set('off', 0);
+      window[markvar].set('dinfo', "");
+      // * window[markvar].setTitle("" + cn + " - " + ps + " @ " + (alt * m2ft[unit]).toFixed() + am2ft[unit] + " @ " + tim);
+      window[markvar].set('speed', "" + speed);
+      window[markvar].set('track', "" + track);
+      window[markvar].set('vz', "" + vz);
+      window[markvar].set('tim', "" + tim);
+      window[markvar].set('rec', "" + rec);
+      window[markvar].set('alt', "" + alt);
+      window[markvar].set('tra', 0);
+      window[markvar].set('visi', visib);
+
+      iconLayerSource.addFeature(window[markvar]);
+
+
+      // create array and add barogram time and altitude
+      window[barovar] = [];
+      window[barovar].push([tim.toSeconds(),alt]);
+      // reset the time scale on the barogram
+      Set_XY_Scale(tim,alt);
+
+      if (++ccolor == tcolor.length) ccolor = 0;
+    } // fin du if typeof...
+
+    var difalt = vz * 1;
+
+    colcn = window[polyvar].get('col');
+
+    if (ddf < 600) { // if online (active during 10 last minutes)
+      if (ddf > 120) afdif = "n";
+      else if (difalt === 0) afdif = "z";
+      else if (difalt < -4) afdif = "mmm";
+      else if (difalt < -1) afdif = "mm";
+      else if (difalt < 0) afdif = "m";
+      else if (difalt > 4) afdif = "ppp";
+      else if (difalt > 1) afdif = "pp";
+      else afdif = "p";
+
+
+
+      online.push([cn, alt * 1, crc, '#'+colcn, afdif]);
+
+      if (window[markvar].get('off') == 1) {
+	window[markvar].setStyle(new ol.style.Style({
+	  image: new ol.style.Icon({
+	    anchor: [0.5, 1],
+	    src: "" + ognTld + "/markers/" + cn + ftypec[typ * 1] + ".png"
+	  })
+	}));
+	window[markvar].set('off', 0);
+	window[markvar].changed();
+	map.render();
+      }
+
+      if (window[markvar].get('tra') === 0) {  // partial path, not whole path
+        // * if (window[polyvar].getPath().getLength() >= pathl) window[polyvar].getPath().removeAt(0); // remove first point of the trace
+	if (window[polyvar].getGeometry().getCoordinates().length >= pathl) {
+	  window[polyvar].getGeometry().setCoordinates(	window[polyvar].getGeometry().getCoordinates().slice(1) );
+	}
+      }
+
+      // * window[polyvar].getPath().push(posi); // ajout d'une position sur le tracé
+      window[polyvar].getGeometry().appendCoordinate(ol.proj.fromLonLat([lon, lat]));
+      window[polyvar].changed();
+      map.render();
+
+
+      if (typeof(window[markvar]) != 'undefined') {
+	if (stick === 1) {
+
+	  window[stickvar].getGeometry().setCoordinates([ol.proj.fromLonLat([lon,lat]),ol.proj.fromLonLat([lon,lat+(0.00001*(alt-te))])]);
+	  window[markvar].setGeometry(posiBaton); // déplace le marker
+
+
+	} else {
+
+	  try {
+	    window[markvar].setGeometry(posi); // déplace le marker
+	  }
+	  catch(err) {
+	    console.log("err maj posi du marker " + markvar + " : " + err.message);
+	  }
+
+	}
+	try {
+	  window[markvar].changed();
+	} catch (err) {
+	  console.log("Mar ch");
+	  console.log(window[markvar]);
+	}
+	map.render();
+
+
+	// change l'altitude affichée
+
+	// * window[markvar].setTitle("" + cn + " - " + ps + " @ " + (alt * m2ft[unit]).toFixed() + am2ft[unit] + " @ " + tim);
+	window[markvar].set('title', "" + cn + " - " + ps + " @ " + (alt * m2ft[unit]).toFixed() + am2ft[unit] + " @ " + tim);
+	window[markvar].set('speed', "" + speed);
+	window[markvar].set('track', "" + track);
+	window[markvar].set('vz', "" + vz);
+	window[markvar].set('tim', "" + tim);
+	window[markvar].set('rec', "" + rec);
+	window[markvar].set('alt', "" + alt);
+	window[markvar].set('lat', lat);
+	window[markvar].set('lon', lon);
+      }
+
+
+      // check display time and remove old data
+      if (window[barovar].length >= pathl) window[barovar].shift(); // remove first point of the trace
+      // add barogram data
+      window[barovar].push([tim.toSeconds(),alt]);
+      Set_XY_Scale(tim,alt);
+
+    } else {		// offline
+      if (all === 0) {			// if offline not displayed
+        // if (typeof(window[polyvar]) != 'undefined') { // si pas déjà effacé
+	if (typeof(window[markvar]) != 'undefined') { // si pas déjà effacé
+          //          // efface et détruit le PolyLine et le Marker
+          // efface et détruit le baton, le PolyLine et le Marker
+
+          /// ### window[stickvar].setMap(null);
+          delete window[stickvar];
+
+	  delete window[barovar];
+
+	  iconLayerSource.removeFeature(window[markvar]);
+	  traceLayerSource.removeFeature(window[polyvar]);
+	  map.render();
+          delete window[markvar];
+	  delete window[polyvar];
+
+          if (autoc == markvar) {
+            autoc = "";
+            document.getElementById("divInfoac").innerHTML = "&nbsp;";
+            document.getElementById("divInfoac").style.display = "none";
+          }
+          if (acaff == markvar) acaff = "";
+
+        }
+      } else {				// if offline displayed
+        offline.push([cn, alt * 1, crc, '#'+colcn, "n"]);
+        if (window[markvar].get('off') === 0) {
+
+
+	  window[markvar].setStyle(new ol.style.Style({
+	    image: new ol.style.Icon({
+	      anchor: [0.5, 1],
+	      src: "" + ognTld + "/markers/" + cn + "_o.png"
+	    })
+	  }));
+	  window[markvar].set('off', 1);
+	  window[markvar].changed();
+	  map.render();
+        }
+      }
+    }
+
+
+    if (autoc == markvar) {
+      document.getElementById("divInfoac").innerHTML = "<B>AC</B>: " + cn + " - " + ps + " @ " + (alt * m2ft[unit]).toFixed() + am2ft[unit];
+      if (cton === false) map.getView().setCenter(ol.proj.transform([lon, lat], 'EPSG:4326', 'EPSG:3857'));
+    }
+
+    if (acaff == markvar) affinfodata(markvar);
+
+
+  } // fin du for (var i = 0; i < planeurs.length; i++)
+  // tri et affichage du tableau
+
+  afftab();
+
+  baro_plotRefresh();
+  baro_plot();
+
+  if (--nbreq < 0) {
+    nbreq = 0;
+  } else {
+    tmgm = setTimeout(gesmark, 10000);
+  }
+}
+
 function gesmark() {
   if (nbreq > 0) {
     --nbreq;
@@ -1069,323 +1385,9 @@ function gesmark() {
   }
 
   ++nbreq;
-  downloadUrl(ognTld + '/' + cxml + "?a=" + all + boundc + recc + parc + tz + hashy, function(data) {
-    ++w;
-    var planeurs = data.documentElement.getElementsByTagName("m");
-    online.length = 0;
-    offline.length = 0;
-    var colcn;
-    var del = "N";
-
-    for (var i = 0; i < planeurs.length; i++) {
-      // récupération des données transmises pour ce planeur
-      var tab = planeurs[i].getAttribute("a").split(",");
-
-
-      var fid = tab[12];
-      if (wlt == 1) {
-        if (wlist.indexOf(fid) == -1) continue;
-      }
-      var ps = tab[3];
-      var lat = parseFloat(tab[0]);
-      var lon = parseFloat(tab[1]);
-      var cn = tab[2];
-      if (cn == "") cn = "_";
-
-      var alt = tab[4];
-      var tim = tab[5];
-      var ddf = tab[6];
-      var track = tab[7];
-      var speed = tab[8];
-      var vz = tab[9];
-      var typ = tab[10];
-      var rec = tab[11];
-
-      var crc = tab[13];
-
-		
-			var posi = new ol.geom.Point(ol.proj.fromLonLat([lon,lat]));
-      var te = 0; //altitude sol
-//      elevator.getElevationForLocations({'locations': [posi]}, function(results, status) {
-//      if (status == google.maps.ElevationStatus.OK) {
-//          if (results[0]) {
-//            te = Math.round(results[0].elevation);
-//          }
-//        }
-//      });
-			var posiBaton = new ol.geom.Point(ol.proj.fromLonLat([lon,lat+(0.00001*(alt-te))]));
-			
-			
-      var polyvar = "P_" + crc;
-      var markvar = "M_" + crc;
-      var stickvar = "S_" + crc;
-      var barovar = "B_" + crc;
-			var visib = 1;
-
-
-      if (typeof(window[polyvar]) == 'undefined') // If aircraft not already created
-      {
-        // create path color for array
-        hcol = tcolor[ccolor];
-        if (hnew === true) visib = 0; // * false;
-
-        // create polyline
-				
-				window[polyvar] = new ol.Feature({
-					geometry: new ol.geom.LineString([ol.proj.fromLonLat([lon,lat])])
-				});
-				window[polyvar].setStyle(new ol.style.Style({
-					stroke: new ol.style.Stroke({
-						//color: '#' + hcol,			// version courte initiale
-						color: [parseInt(hcol.substring(0,2), 16), parseInt(hcol.substring(2,4), 16), parseInt(hcol.substring(4), 16), visib ],		// version avec canal alpha pour cacher/afficher
-						width: polwidth
-					})
-					
-				}));
-				try {
-					traceLayerSource.addFeature(window[polyvar]);
-				} catch(err) {
-					console.log("Pol:");
-					console.log(window[polyvar]);
-				}
-				window[polyvar].set('poly', "" + polyvar);
-				window[polyvar].set('visi', visib);
-				window[polyvar].set('col', "" + hcol);
-				window[polyvar].set('nom', "" + cn + " - " + ps);
-			
-				
-				        // création du Baton d'altitude
-
-				
-				window[stickvar] = new ol.Feature({
-					geometry: new ol.geom.LineString([ol.proj.fromLonLat([lon,lat])])
-				});
-				window[stickvar].setStyle(new ol.style.Style({
-					stroke: new ol.style.Stroke({
-						color: [0, 0, 0, visib ],		// version avec canal alpha pour cacher/afficher // black for now
-						// color: [parseInt(hcol.substring(0,2), 16), parseInt(hcol.substring(2,4), 16), parseInt(hcol.substring(4), 16), visib ],		// version avec canal alpha pour cacher/afficher
-						width: polwidth
-					})
-					
-				}));
-				window[stickvar].set('nom', "" + cn + " - " + ps);
-        window[stickvar].set('baton', "" + stickvar);
-				window[stickvar].set('col', "000000");		// stick color is black
-				sticksLayerSource.addFeature(window[stickvar]);
-
-        // création du Marker
-				
-				
-					
-				window[markvar] = new ol.Feature({
-					geometry: posi,
-					title: cn + " - " + ps + " @ " + alt + "m",
-	//				id: markvar
-					lat: lat,
-					lon: lon
-				});
-				
-				window[markvar].setStyle(new ol.style.Style({
-					image: new ol.style.Icon({
-						anchor: [0.5, 1],
-						opacity: visib,
-						src: "" + ognTld + "/markers/" + cn + ftypec[typ * 1] + ".png"
-					})
-				}));
-				
-				window[markvar].set('poly', "" + polyvar);
-        window[markvar].set('mark', "" + markvar);
-        window[markvar].set('stick', "" + stickvar);
-        window[markvar].set('nom', "" + cn + " - " + ps);
-        window[markvar].set('cn', "" + cn);
-        window[markvar].set('reg', "" + ps);
-        if (fid == "0") fid = "hidden";
-        window[markvar].set('fid', "" + fid);
-        window[markvar].set('type', "" + typ);
-        window[markvar].set('icol', "" + ccolor);
-        window[markvar].set('off', 0);
-        window[markvar].set('dinfo', "");
-        // * window[markvar].setTitle("" + cn + " - " + ps + " @ " + (alt * m2ft[unit]).toFixed() + am2ft[unit] + " @ " + tim);
-        window[markvar].set('speed', "" + speed);
-        window[markvar].set('track', "" + track);
-        window[markvar].set('vz', "" + vz);
-        window[markvar].set('tim', "" + tim);
-        window[markvar].set('rec', "" + rec);
-        window[markvar].set('alt', "" + alt);
-        window[markvar].set('tra', 0);
-				window[markvar].set('visi', visib);
-				
-				iconLayerSource.addFeature(window[markvar]);
-				
-        
-        // create array and add barogram time and altitude
-				window[barovar] = [];
-				window[barovar].push([tim.toSeconds(),alt]);
-				// reset the time scale on the barogram
-				Set_XY_Scale(tim,alt);
-
-        if (++ccolor == tcolor.length) ccolor = 0;
-      } // fin du if typeof...
-
-      var difalt = vz * 1;
-
-			colcn = window[polyvar].get('col');
-
-      if (ddf < 600) { // if online (active during 10 last minutes)
-        if (ddf > 120) afdif = "n";
-        else if (difalt === 0) afdif = "z";
-        else if (difalt < -4) afdif = "mmm";
-        else if (difalt < -1) afdif = "mm";
-        else if (difalt < 0) afdif = "m";
-        else if (difalt > 4) afdif = "ppp";
-        else if (difalt > 1) afdif = "pp";
-        else afdif = "p";
-
-        
-				
-				online.push([cn, alt * 1, crc, '#'+colcn, afdif]);
-				
-				if (window[markvar].get('off') == 1) {
-					window[markvar].setStyle(new ol.style.Style({
-							image: new ol.style.Icon({
-								anchor: [0.5, 1],
-								src: "" + ognTld + "/markers/" + cn + ftypec[typ * 1] + ".png"
-							})
-					}));
-					window[markvar].set('off', 0);
-					window[markvar].changed();
-					map.render();
-				}
-				
-				if (window[markvar].get('tra') === 0) {  // partial path, not whole path
-          // * if (window[polyvar].getPath().getLength() >= pathl) window[polyvar].getPath().removeAt(0); // remove first point of the trace
-					if (window[polyvar].getGeometry().getCoordinates().length >= pathl) {
-						window[polyvar].getGeometry().setCoordinates(	window[polyvar].getGeometry().getCoordinates().slice(1) );
-					}
-        }
-
-        // * window[polyvar].getPath().push(posi); // ajout d'une position sur le tracé
-				window[polyvar].getGeometry().appendCoordinate(ol.proj.fromLonLat([lon, lat]));
-				window[polyvar].changed();
-				map.render();
-
-				
-				if (typeof(window[markvar]) != 'undefined') {
-					if (stick === 1) {
-
-						window[stickvar].getGeometry().setCoordinates([ol.proj.fromLonLat([lon,lat]),ol.proj.fromLonLat([lon,lat+(0.00001*(alt-te))])]);
-						window[markvar].setGeometry(posiBaton); // déplace le marker							
-
-						
-					} else {
-						
-						try {
-							window[markvar].setGeometry(posi); // déplace le marker							
-						}
-						catch(err) {
-							console.log("err maj posi du marker " + markvar + " : " + err.message);
-						}
-						
-					}
-					try {
-						window[markvar].changed();
-					} catch (err) {
-						console.log("Mar ch");
-						console.log(window[markvar]);
-					}
-					map.render();
-					
-
-					// change l'altitude affichée
-
-					// * window[markvar].setTitle("" + cn + " - " + ps + " @ " + (alt * m2ft[unit]).toFixed() + am2ft[unit] + " @ " + tim);
-					window[markvar].set('title', "" + cn + " - " + ps + " @ " + (alt * m2ft[unit]).toFixed() + am2ft[unit] + " @ " + tim);
-					window[markvar].set('speed', "" + speed);
-					window[markvar].set('track', "" + track);
-					window[markvar].set('vz', "" + vz);
-					window[markvar].set('tim', "" + tim);
-					window[markvar].set('rec', "" + rec);
-					window[markvar].set('alt', "" + alt);
-					window[markvar].set('lat', lat);
-					window[markvar].set('lon', lon);
-				}
-				
-
-	// check display time and remove old data
-        if (window[barovar].length >= pathl) window[barovar].shift(); // remove first point of the trace
-	// add barogram data
-				window[barovar].push([tim.toSeconds(),alt]);
-        Set_XY_Scale(tim,alt);
-
-      } else {		// offline
-        if (all === 0) {			// if offline not displayed
-          // if (typeof(window[polyvar]) != 'undefined') { // si pas déjà effacé
-					if (typeof(window[markvar]) != 'undefined') { // si pas déjà effacé
-//          // efface et détruit le PolyLine et le Marker
-            // efface et détruit le baton, le PolyLine et le Marker
-
-            /// ### window[stickvar].setMap(null);
-            delete window[stickvar];
-						
-						delete window[barovar];
-								  
-						iconLayerSource.removeFeature(window[markvar]);
-						traceLayerSource.removeFeature(window[polyvar]);
-						map.render();
-            delete window[markvar];
-						delete window[polyvar];
-		  
-            if (autoc == markvar) {
-              autoc = "";
-              document.getElementById("divInfoac").innerHTML = "&nbsp;";
-              document.getElementById("divInfoac").style.display = "none";
-            }
-            if (acaff == markvar) acaff = "";
-
-          }
-        } else {				// if offline displayed
-          offline.push([cn, alt * 1, crc, '#'+colcn, "n"]);
-          if (window[markvar].get('off') === 0) {
-
-
-						window[markvar].setStyle(new ol.style.Style({
-							image: new ol.style.Icon({
-								anchor: [0.5, 1],
-								src: "" + ognTld + "/markers/" + cn + "_o.png"
-							})
-						}));
-						window[markvar].set('off', 1);
-						window[markvar].changed();
-						map.render();
-          }
-        }
-      }
-
-
-      if (autoc == markvar) {
-        document.getElementById("divInfoac").innerHTML = "<B>AC</B>: " + cn + " - " + ps + " @ " + (alt * m2ft[unit]).toFixed() + am2ft[unit];
-        if (cton === false) map.getView().setCenter(ol.proj.transform([lon, lat], 'EPSG:4326', 'EPSG:3857'));
-      }
-
-     if (acaff == markvar) affinfodata(markvar);
-
-
-    } // fin du for (var i = 0; i < planeurs.length; i++)
-    // tri et affichage du tableau
-	
-    afftab();
-	
-    baro_plotRefresh();
-    baro_plot();
-
-    if (--nbreq < 0) {
-      nbreq = 0;
-    } else {
-      tmgm = setTimeout(gesmark, 10000);
-    }
-  });
-
+  downloadUrl(ognTld + '/' + cxml + "?a=" + all + boundc + recc + parc + tz + hashy, onFlightsUpdate);
 }
+
 
 function wd() {
   if (w === 0) {
