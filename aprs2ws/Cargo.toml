@@ -1,0 +1,9 @@
+[package]
+name = "aprs2ws"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# aprs = { version = "0.1.0", path = "../../flightlogr/aprs" }
+flightlogr = { version = "0.1.0", path = "../../flightlogr" }
+websocket = "0.27"
