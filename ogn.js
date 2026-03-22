@@ -1,12 +1,12 @@
 /*
-   ____                      _____ _ _     _             _   _      _                      _    
-  / __ \                    / ____| (_)   | |           | \ | |    | |                    | |   
+   ____                      _____ _ _     _             _   _      _                      _
+  / __ \                    / ____| (_)   | |           | \ | |    | |                    | |
  | |  | |_ __   ___ _ __   | |  __| |_  __| | ___ _ __  |  \| | ___| |___      _____  _ __| | __
  | |  | | '_ \ / _ \ '_ \  | | |_ | | |/ _` |/ _ \ '__| | . ` |/ _ \ __\ \ /\ / / _ \| '__| |/ /
- | |__| | |_) |  __/ | | | | |__| | | | (_| |  __/ |    | |\  |  __/ |_ \ V  V / (_) | |  |   < 
+ | |__| | |_) |  __/ | | | | |__| | | | (_| |  __/ |    | |\  |  __/ |_ \ V  V / (_) | |  |   <
   \____/| .__/ \___|_| |_|  \_____|_|_|\__,_|\___|_|    |_| \_|\___|\__| \_/\_/ \___/|_|  |_|\_\
-        | |                                                                                     
-        |_|                                                                                     
+        | |
+        |_|
 */
 
 // Extend Number object with methods to convert between degrees & radians
@@ -72,10 +72,11 @@ var akh2kt={"m":"km/h", "i":"kt"};
 var m2kt={"m":1, "i":1.94384};
 var am2kt={"m":"m/s", "i":"kt"};
 var unitlist = {"m":"metric", "i":"nautical"}
+let wsUrl = "ws://localhost:8080";
 
 
 var hashc="",hashz="",hashm="",hasho="",hashb="",hashs="",hashl="",hasht="",hl="       ",hashw="",hashu="",hashp="",hashn="",hashy="",hasha="",    hashg="";
-// center     zoom    maptype  offline  bound   autoset2ma  layers  tasks                warning   units   pathlength nolist devtype altitudestick barogram 
+// center     zoom    maptype  offline  bound   autoset2ma  layers  tasks                warning   units   pathlength nolist devtype altitudestick barogram
 
 
 //  close popup
@@ -146,12 +147,12 @@ function chpl() { // change path length
     hashp = "&p=3";
   }
   // only delete paths if new path is smaller
-  if (pathl < prevPathl) { 
+  if (pathl < prevPathl) {
     delpon();
     delpoff();
   }
   baro_reSize();
-	
+
   rehash();
 }
 
@@ -264,7 +265,7 @@ function delpoff() { // delete all offline path
 function deletepath(pol) {
   // * window[pol].getPath().clear();
 	window[pol].getGeometry().setCoordinates([]);
-	
+
   window["M_" + pol.substring(2)].set('tra', 0);
   window["B_" + pol.substring(2)] =[];
 }
@@ -300,7 +301,7 @@ function allmarker() {
   var j = -1;
 	var opa = true;
   if (onoff == 1) {
-    if (vallmaron === true) { 
+    if (vallmaron === true) {
 			vallmaron = false;
 			opa = false;
 		}
@@ -367,12 +368,12 @@ function focuson(poly) {
 
 function focusoff(poly) {
   if (document.getElementById(poly) !== null) document.getElementById(poly).className = 'whi';
-	
+
 	if (document.getElementById(poly) !== null) document.getElementById(poly).className = 'whi';
 	if ( typeof(window[poly]) != 'undefined' ) {
 		highlight(poly,polwidth);
 	}
-	
+
 
 }
 
@@ -396,7 +397,7 @@ function apt() {
     rempl(5, "a");
   } else {
     vapt = false;
-		airportoverlay.setVisible(false);		
+		airportoverlay.setVisible(false);
     rempl(5, " ");
   }
   rehash();
@@ -468,16 +469,16 @@ function reseton() { // delete all online markers and their path
   while (online[++j]) {
 		iconLayerSource.removeFeature(window["M_" + online[j][2]]);
     delete window["M_" + online[j][2]];
-		
+
 		sticksLayerSource.removeFeature(window["S_" + online[j][2]]);
     delete window["S_" + online[j][2]];
-		
+
 		traceLayerSource.removeFeature(window["P_" + online[j][2]]);
     delete window["P_" + online[j][2]];
-		
+
     delete window["B_" + online[j][2]];
   }
-map.render();	
+map.render();
 }
 
 function resetoff() { // delete all offline markers and their path
@@ -485,13 +486,13 @@ function resetoff() { // delete all offline markers and their path
   while (offline[++j]) {
 		iconLayerSource.removeFeature(window["M_" + offline[j][2]]);
     delete window["M_" + offline[j][2]];
-		
+
 		sticksLayerSource.removeFeature(window["S_" + offline[j][2]]);
     delete window["S_" + offline[j][2]];
-		
+
 		traceLayerSource.removeFeature(window["P_" + offline[j][2]]);
     delete window["P_" + offline[j][2]];
-		
+
     delete window["B_" + offline[j][2]];
   }
 map.render();
@@ -568,13 +569,13 @@ function afftab() {
         pol = "P_" + online[j][2];
         stk = "S_" + online[j][2];
 
-			  dlistd += "<TR id=\"" + pol + "\" onmouseover=\"focuson('" + pol + "');\" onmouseout=\"focusoff('" + pol + "');\">" + 
-		  "<TD class=\"cgv\"><input onchange=\"setvisimar(this.checked ,'" + mar + "');setvisistk(this.checked ,'" + stk + "');\" type=\"checkbox\" " + isvisib(mar) + " ></TD>" + 
-		  "<TD class=\"cgv\"><input onchange=\"setvisipol(this.checked ,'" + pol + "');\" type=\"checkbox\" " + isvisib(pol) + " ></TD>" + 
-		  "<TD class=\"cgn\" onmousedown=\"centeron('" + mar + "');\" onmouseup=\"centeroff();\" oncontextmenu=\"event.stopPropagation(); redraw('" + pol + "'); return false;\" ondblclick=\"event.stopPropagation(); autocenter('" + mar + "');\" >" + online[j][0] + "</TD>" + 
-		  "<TD class=\"cgc\"><span style='background-color: " + online[j][3] + "' ondblclick=\"deletepath('" + pol + "'); return false;\" oncontextmenu=\"this.style.backgroundColor=changecolor('" + mar + "'); return false;\">&nbsp;&nbsp;</span></TD>" + 
+			  dlistd += "<TR id=\"" + pol + "\" onmouseover=\"focuson('" + pol + "');\" onmouseout=\"focusoff('" + pol + "');\">" +
+		  "<TD class=\"cgv\"><input onchange=\"setvisimar(this.checked ,'" + mar + "');setvisistk(this.checked ,'" + stk + "');\" type=\"checkbox\" " + isvisib(mar) + " ></TD>" +
+		  "<TD class=\"cgv\"><input onchange=\"setvisipol(this.checked ,'" + pol + "');\" type=\"checkbox\" " + isvisib(pol) + " ></TD>" +
+		  "<TD class=\"cgn\" onmousedown=\"centeron('" + mar + "');\" onmouseup=\"centeroff();\" oncontextmenu=\"event.stopPropagation(); redraw('" + pol + "'); return false;\" ondblclick=\"event.stopPropagation(); autocenter('" + mar + "');\" >" + online[j][0] + "</TD>" +
+		  "<TD class=\"cgc\"><span style='background-color: " + online[j][3] + "' ondblclick=\"deletepath('" + pol + "'); return false;\" oncontextmenu=\"this.style.backgroundColor=changecolor('" + mar + "'); return false;\">&nbsp;&nbsp;</span></TD>" +
 		  "<TD onclick=\"affinfo('" + mar + "')\" class=\"cga\">";
-      
+
         if (unit == "i") {
           dlistd += (online[j][1] * m2ft[unit]).toFixed();
         } // { var tv=online[j][1]*m2ft[unit];   dlistd+= tv.toFixed(); }
@@ -645,7 +646,7 @@ function alist() {
   rehash();
 }
 
-function sideclick() {			// change list position (left<->right) 
+function sideclick() {			// change list position (left<->right)
   if (lside === 0) {
     document.getElementById('dlist').className = "lleft";
     document.getElementById('dbaro').className = "baroright";
@@ -665,10 +666,10 @@ function sideclick() {			// change list position (left<->right)
 
 
 function autocenter(mark) {
-  // ### 
+  // ###
 	document.getElementById("divInfoac").innerHTML = "<B>AC</B>: " + window[mark].get('title');
   autoc = mark;
-  // ### 
+  // ###
 	document.getElementById("divInfoac").style.display = "block";
 	map.getView().setCenter(ol.proj.fromLonLat([window[mark].get('lon'), window[mark].get('lat')]));
 }
@@ -738,23 +739,23 @@ function changecolor(mark) {
 	if (++colactive == tcolor.length) colactive = 0;
   var ncol = tcolor[colactive];
 	var visib = window[window[mark].get('poly')].get('visi');
-	
-	
+
+
 	window[window[mark].get('poly')].setStyle(new ol.style.Style({
 					stroke: new ol.style.Stroke({
 						//color: '#' + hcol,			// version courte initiale
 						color: [parseInt(ncol.substring(0,2), 16), parseInt(ncol.substring(2,4), 16), parseInt(ncol.substring(4), 16), visib ],		// version avec canal alpha pour cacher/afficher
 						width: polwidth
 					})
-					
+
 				}));
-	
-	
-	
+
+
+
   window[mark].set('icol', "" + colactive);
 	window[window[mark].get('poly')].set('col', "" + ncol);
   return "#" + ncol;
-	
+
 }
 
 function redraw(pol) {
@@ -762,7 +763,7 @@ function redraw(pol) {
   var mrk = window["M_" + p];
   var fi = mrk.get('fid');
 	var lo = mrk.get('lon');
-	
+
   mrk.set('tra', 1);
   downloadUrl(ognTld + '/' + cxml1 + '?id=' + p + "&l=" + lo, function(data) {
     var vtrace = data.documentElement.getElementsByTagName("m");
@@ -771,11 +772,11 @@ function redraw(pol) {
     var encodedt = vtrace[0].getAttribute("r");
 
     if (err === 0 && encodedt.length > 2) {
-			
+
 			var format = new ol.format.Polyline({
         //factor: 1e6
 			});
-			
+
 			var line = format.readGeometry(encodedt, {
         dataProjection: 'EPSG:4326',
         featureProjection: 'EPSG:900913'
@@ -783,7 +784,7 @@ function redraw(pol) {
 
 			window['P_' + idd].getGeometry().setCoordinates([]);
 			window['P_' + idd].setGeometry(line);
-			
+
     }
   });
 }
@@ -806,7 +807,7 @@ function taskbox() {
     }
   }
 
-	taskLayer.setVisible(vtas); 
+	taskLayer.setVisible(vtas);
 }
 
 
@@ -825,7 +826,7 @@ function reclbox() {
 
 
 function checkrec() {
-	
+
   downloadUrl(ognTld + '/' + rxml, function(data) {
     var vlrec = data.documentElement.getElementsByTagName("m");
     var err = parseFloat(vlrec[0].getAttribute("e"));
@@ -847,7 +848,7 @@ function checkrec() {
         selrec += "<option value='" + re + "'>" + re + "</option>";
         receivers.push([re, rlat, rlon]); // lat et lon stockées mais jamais utilisées ?
 
-				
+
 				window["R_" + re] = new ol.Feature({
 					geometry: new ol.geom.Point(ol.proj.fromLonLat([rlon,rlat])),
 					lat: rlat,
@@ -855,7 +856,7 @@ function checkrec() {
 					mark: "R",
 					info: re
 				});
-				
+
 				window["R_" + re].setStyle(new ol.style.Style({
 					image: new ol.style.Icon({
 						anchor: [0.5, 1],
@@ -863,7 +864,7 @@ function checkrec() {
 						src: "" + tld + "/pict/rec" + ract + ".png",
 					})
 				}));
-				
+
 				receiverLayerSource.addFeature(window["R_" + re]);
       }
       setTimeout(checkrec, 120000);
@@ -968,8 +969,8 @@ function affinfo(mark) {
 }
 
 function settomap() {
-	
-	
+
+
 	var extent = map.getView().calculateExtent(map.getSize());
   var bottomLeft = ol.proj.transform(ol.extent.getBottomLeft(extent),'EPSG:3857', 'EPSG:4326');
 	var topRight = ol.proj.transform(ol.extent.getTopRight(extent),'EPSG:3857', 'EPSG:4326');
@@ -978,7 +979,7 @@ function settomap() {
   amin = bottomLeft[1];
 	omax = topRight[0];
 	omin = bottomLeft[0];
-	
+
   if (amax > 85) amax = 85;
   if (amin < -85) amin = -85;
   if (omax > 180) omax = 180;
@@ -1027,21 +1028,21 @@ function dist(lat1, lon1, lat2, lon2) {
 
 function baro_reSize() {
   switch(pathl) {
-    case 30: 
+    case 30:
       document.getElementById('dbaro').style.width = "155px"; // 70+85
 	  // weird behaviour for canvas sizing versus scaling
       document.getElementById('div_baro').style.width = "70px";
       document.getElementById('div_baro').width = 70;
 	  X_lines = 5+1;
 	  break;
-    case 60: 
+    case 60:
       document.getElementById('dbaro').style.width = "225px"; // 140+85
 	  // weird behaviour for canvas sizing versus scaling
       document.getElementById('div_baro').style.width = "140px";
       document.getElementById('div_baro').width = 140;
 	  X_lines = 10+1;
 	  break;
-	default:  
+	default:
       document.getElementById('dbaro').style.width = "295px" ; //210+85
 	  // weird behaviour for canvas sizing versus scaling
       document.getElementById('div_baro').style.width = "210px";
@@ -1057,7 +1058,7 @@ function baro_plot() {
 	// * if (window["P_" + online[j][2]].getVisible() === true) {
 		if (window["P_" + online[j][2]].get('visi') == 1) {
 			baro_plotData(online[j][0],online[j][3],window["B_" + online[j][2]]);
-		}	
+		}
   }
 
 }
@@ -1133,7 +1134,7 @@ function onFlightsUpdate(data) {
 	  color: [parseInt(hcol.substring(0,2), 16), parseInt(hcol.substring(2,4), 16), parseInt(hcol.substring(4), 16), visib ],		// version avec canal alpha pour cacher/afficher
 	  width: polwidth
 	})
-					
+
       }));
       try {
 	traceLayerSource.addFeature(window[polyvar]);
@@ -1497,7 +1498,7 @@ function parseJSONTasks(cont) {
 					tp[tp.length - 1].type = "quadrant";
 					if (res.tasks[i].legs[ii][0].length > 1)
 						tp[tp.length - 1].angle = Number(res.tasks[i].legs[ii][0].substr(1));
-					else 
+					else
 						tp[tp.length - 1].angle = 90;
 					tp[tp.length - 1].radius = res.tasks[i].legs[ii][1];
 				} else if (res.tasks[i].legs[ii][0] == 'K') {			// Key hole
@@ -1569,7 +1570,7 @@ function parseXCSoarTask(cont) {
 function destinationPoint(slat, slon, distance, bearing) {
 	var radius=6371e3;
 	var δ,θ,φ1,λ1,sinφ2,φ2,y,x,λ2,lat,lon;
-	
+
 	δ = distance / radius; // angular distance in radians
   θ = Number(bearing).toRadians();
 
@@ -1621,14 +1622,14 @@ function showTask(task) {
 			azim = (bis + 90) % 360;
       if (Math.abs(capRetour - capIn) > 180) bis = ( bis +180 ) % 360;
     }
-		
+
 		console.log("capout:"+capOut);
 		console.log("bis:"+bis);
-		
-		
+
+
     if ((task.turnpoints[ii].type == 'circle')) {		// circle
-			
-					
+
+
 			var cc = ol.geom.Polygon.circular(
 					/* WGS84 Sphere */ // ### IGC is 6371000 ?
 					new ol.Sphere(6378137),
@@ -1638,7 +1639,7 @@ function showTask(task) {
 					64
 					);
 			cc.transform('EPSG:4326', 'EPSG:3857');
-			
+
 			var circle = new ol.Feature({
         geometry: cc
 			});
@@ -1654,11 +1655,11 @@ function showTask(task) {
 			}));
 
 			taskLayerSource.addFeature(circle);
-			
+
     } else if ((task.turnpoints[ii].type == 'line')) {		// line
       angledeb = (azim - 90 ) % 360;
       anglefin = (azim + 90 ) % 360;
-				
+
 			result = destinationPoint(task.turnpoints[ii].lat, task.turnpoints[ii].lon, task.turnpoints[ii].radius, angledeb);
 			cy1 = result[0];
       cx1 = result[1];
@@ -1666,15 +1667,15 @@ function showTask(task) {
 			result = destinationPoint(task.turnpoints[ii].lat, task.turnpoints[ii].lon, task.turnpoints[ii].radius, anglefin);
 			cy2 = result[0];
       cx2 = result[1];
-			
+
       var tpline = [];
-			
+
 			// ####
 			console.log("adeb:"+angledeb); 			console.log("afin:"+anglefin); 			console.log("cx1:"+cx1); 			console.log("cy1:"+cy1); 			console.log("cx2:"+cx2); 			console.log("cy2:"+cy2);
-			
+
 			tpline.push(ol.proj.fromLonLat([cx1, cy1]));
 			tpline.push(ol.proj.fromLonLat([cx2, cy2]));
-        
+
 			var dline = new ol.Feature({
 					geometry: new ol.geom.LineString( tpline )
 				});
@@ -1685,35 +1686,35 @@ function showTask(task) {
 				})
 			}));
 			taskLayerSource.addFeature(dline);
-			
+
 		} else if ((task.turnpoints[ii].type == 'quadrant')) {		// quadrant
 			var pointList = [],
         i,
         dAngle = 64 + 1,
         azimuth;
-			
+
 			pointList.push(ol.proj.fromLonLat([task.turnpoints[ii].lon, task.turnpoints[ii].lat]));
-			
+
 			console.log("Q bis:"+bis);
 			angle = task.turnpoints[ii].angle;
 			angledeb = (bis - (angle/2) ) % 360;
       anglefin = (bis + (angle/2) ) % 360;
-			
+
 			console.log("Q deb:"+angledeb);
 			console.log("Q fin:"+anglefin);
-			
+
       for (i = 0; i < dAngle; i++) {
 				azimuth = angledeb + (angle) * i / (dAngle - 1);
-				
+
 				result = destinationPoint(task.turnpoints[ii].lat, task.turnpoints[ii].lon, task.turnpoints[ii].radius, azimuth);
 				cy2 = result[0];
 				cx2 = result[1];
 
 				pointList.push(ol.proj.fromLonLat([cx2, cy2]));
 			}
-			
+
 			pointList.push(ol.proj.fromLonLat([task.turnpoints[ii].lon, task.turnpoints[ii].lat]));
-			
+
 			var dline = new ol.Feature({
 				geometry: new ol.geom.Polygon( [pointList] )
 			});
@@ -1731,7 +1732,7 @@ function showTask(task) {
 		point = ol.proj.fromLonLat([task.turnpoints[ii].lon, task.turnpoints[ii].lat]);
     tp.push(point);
   }
-	
+
 	var taskpath = new ol.Feature({
 					geometry: new ol.geom.LineString( tp )
 				});
@@ -1742,9 +1743,9 @@ function showTask(task) {
 		})
 	}));
 	taskpath.set('nom', '' + tn);
-  
+
 	taskLayerSource.addFeature(taskpath);
-	
+
   document.getElementById('dtaskbox').innerHTML = '<INPUT type="checkbox" id="taskbox" onChange="javascript : taskbox();" checked>';
 
 }
@@ -1782,6 +1783,18 @@ function rtask() { // select a task file
   reader.readAsText(file);
 }
 
+function websocketInit() {
+    const socket = new WebSocket(wsUrl);
+    socket.addEventListener("message", (event) => {
+        let dom = new DOMParser().parseFromString(event.data, "application/xml")
+        //console.log("Message from server: ", dom);
+        onFlightsUpdate(dom);
+    });
+    socket.addEventListener("close", (event) => {
+        console.log("Websocket closed: ", event);
+        setTimeout(websocketInit, 10000);
+    });
+}
 
 function initialize() {
   var has = window.location.hash.substring(1).split('&'); // parse the parameters
@@ -1822,7 +1835,7 @@ function initialize() {
       opacity: 1,
       visible: false
     });
-	
+
 	airportoverlay = new ol.layer.Tile({
       source: new ol.source.XYZ({
         tileUrlFunction: function(tileCoord, projection) {
@@ -1836,7 +1849,7 @@ function initialize() {
       opacity: 1,
       visible: false
     });
-	
+
   windoverlay = new ol.layer.Tile({
       source: new ol.source.XYZ({
 				/*
@@ -1909,8 +1922,8 @@ function initialize() {
     source: new ol.source.OSM(),
     visible: true
   });
-		
-	
+
+
   MapsForFreeLayer = new ol.layer.Tile({
       source: new ol.source.XYZ({
 				attributions: [
@@ -1925,7 +1938,7 @@ function initialize() {
       opacity: 1,
       visible: false
     });
-		
+
   MapsForFreeLayerW = new ol.layer.Tile({
       source: new ol.source.XYZ({
         url: 'https://maps-for-free.com/layer/water/z{z}/row{y}/{z}_{x}-{y}.gif',
@@ -1933,8 +1946,8 @@ function initialize() {
       }),
       opacity: 1,
       visible: false
-    });	
-		
+    });
+
 	OSMTopoLayer = new ol.layer.Tile({
       source: new ol.source.XYZ({
 				attributions: [
@@ -1948,8 +1961,8 @@ function initialize() {
       opacity: 1,
       visible: false
     });
-			
-		
+
+
 	IGNSatelliteLayer = new ol.layer.Tile({
       source: new ol.source.XYZ({
 				attributions: [
@@ -1963,7 +1976,7 @@ function initialize() {
       opacity: 1,
       visible: false
     });
-				
+
 	l4UMapsLayer = new ol.layer.Tile({
       source: new ol.source.XYZ({
 				attributions: [
@@ -1976,9 +1989,9 @@ function initialize() {
       }),
       opacity: 1,
       visible: false
-    });				
-		
-		
+    });
+
+
 	StamenTerrainLayer = new ol.layer.Tile({
       source: new ol.source.XYZ({
 				attributions: [
@@ -1992,70 +2005,70 @@ function initialize() {
       opacity: 1,
       visible: false
     });
-		
+
 	iconLayerSource = new ol.source.Vector({
 		attributions: [
       new ol.Attribution({html:'<br>Powered by <a href="http://glidernet.org" target="_blank">Open Glider Network</a>'})
 		],
 		features: []
 	});
-	
-	iconLayer = new ol.layer.Vector({	
+
+	iconLayer = new ol.layer.Vector({
 			source: iconLayerSource,
 			zIndex: 200
 			});
 
-			
+
 	sticksLayerSource = new ol.source.Vector({
 			features: []
 			});
-	
-	sticksLayer = new ol.layer.Vector({	
+
+	sticksLayer = new ol.layer.Vector({
 			source: sticksLayerSource,
 			zIndex: 150,
 			opacity: 1,
 			visible: false
-			});			
-	
+			});
+
 	traceLayerSource = new ol.source.Vector({
 			features: []
 			});
-	
-	traceLayer = new ol.layer.Vector({	
+
+	traceLayer = new ol.layer.Vector({
 			source: traceLayerSource,
 			zIndex: 100
 			});
-			
+
 	taskLayerSource = new ol.source.Vector({
 			features: []
 			});
-	
-	taskLayer = new ol.layer.Vector({	
+
+	taskLayer = new ol.layer.Vector({
 			source: taskLayerSource,
 			zIndex: 70
 			});
-			
-			
+
+
 	receiverLayerSource = new ol.source.Vector({
 			features: []
 			});
-	
-	receiverLayer = new ol.layer.Vector({	
+
+	receiverLayer = new ol.layer.Vector({
 			source: receiverLayerSource,
 			zIndex: 50,
 			opacity: 1,
       visible: false
 			});
-	
+
   attribution = new ol.control.Attribution({
         collapsed: true,
 				tipLabel: 'Show credits'
       });
-	
-	scaleLineControl = new ol.control.ScaleLine();		
-	
-	
-			
+
+	scaleLineControl = new ol.control.ScaleLine();
+
+
+
 	map = new ol.Map({
         interactions: ol.interaction.defaults().extend([
           new ol.interaction.DragRotateAndZoom()
@@ -2066,7 +2079,7 @@ function initialize() {
 					OSMTopoLayer,
 					IGNSatelliteLayer,
 					l4UMapsLayer,
-					StamenTerrainLayer,					
+					StamenTerrainLayer,
 					OSMLayer,
 					receiverLayer,
 					airportoverlay,
@@ -2095,7 +2108,7 @@ function initialize() {
           zoom: 10
         })
       });
-	
+
   map.on('singleclick', function(event) {
 		var receiver = false;
 		var recinfo = "";
@@ -2121,15 +2134,15 @@ function initialize() {
 		} else
 			document.getElementById('lonlatoverlay').style.display = "none";
 	});
-	
+
 	map.on('moveend', function(event) {
 		// get zoom level
     hashz = "&z=" + map.getView().getZoom();
-		
+
 		// get center
 		var nc = ol.proj.toLonLat( map.getView().getCenter() );
     hashc = "c=" + nc[1].toFixed(5) + "," + nc[0].toFixed(5);
-		
+
 		// get rotate
 		var rotation = map.getView().getRotation();
 		if (rotation == 0) {
@@ -2138,14 +2151,14 @@ function initialize() {
 			document.getElementById('NorthButton').style.display = "block";
 			document.getElementById('NorthButton').style.transform = "rotate("+ rotation +"rad)";
 		}
-		
+
     rehash();
-		
+
 		if (vstm === true) settomap();
-		
+
 		document.getElementById('lonlatoverlay').style.display = "none";
   });
-	
+
 	map.on('pointermove', function(event) {
 		var changed = false;
     map.forEachFeatureAtPixel(event.pixel, function(feature,layer) {
@@ -2164,7 +2177,7 @@ function initialize() {
 
 
 	});
-	
+
 	map.getViewport().addEventListener('contextmenu', function (evt) {
     evt.preventDefault();
 		var nb = 0;
@@ -2174,7 +2187,7 @@ function initialize() {
 			redraw('P_' + feature.get('mark').substring(2));
       }
     });
-		
+
 		if (nb == 0) {
 			var coord = map.getEventCoordinate(evt);
 			// transform it to decimal degrees
@@ -2186,13 +2199,13 @@ function initialize() {
 			// position the element (using the coordinate in the map's projection)
 			lonlatoverlay.setPosition(coord);
 			document.getElementById('lonlatoverlay').style.display = "block";
-			
+
 		}
-		
-		
-		
+
+
+
 	});
-	
+
 	northbutton = document.createElement('button');
 	northbutton.setAttribute("id", "NorthButton");
 	northbutton.style.display = "none";
@@ -2205,17 +2218,17 @@ function initialize() {
 	// add button to rotate noth up
 	northbutton.addEventListener('click', handleRotateNorth, false);
 
-	// add button to switch map	
+	// add button to switch map
 	mapbutton = document.createElement('button');
 	mapbutton.innerHTML = 'M';
 	map_selector = function(e) {		// select map layer
 		if (++map_id == 6) map_id = 0;
 		chmap(map_id);
   }
-	
+
 	mapbutton.addEventListener('click', map_selector, false);
-	
-	
+
+
 	divInfo = document.createElement("div");
   divInfo.id = "divInfo";
   divInfo.className = "divInfoclass";
@@ -2225,10 +2238,10 @@ function initialize() {
 
   divInfo.appendChild(document.createTextNode("..."));
 
-	// add fullscrenn button 
+	// add fullscrenn button
 	fullsbutton = document.createElement('button');
 	fullsbutton.innerHTML = "&#9974;";
-	
+
 	screen_mode = function(e) {		// switch fullscreen mode /normal mode
 		if (1 >= outerHeight - innerHeight) {		// test if fullscreen mode
 			if(document.exitFullscreen) {
@@ -2240,7 +2253,7 @@ function initialize() {
 			} else if (document.msExitFullscreen) {
 				window.top.document.msExitFullscreen();
 			}
-		} else { 
+		} else {
 			var el = document.documentElement;
 			if(el.requestFullscreen) {
 				el.requestFullscreen();
@@ -2251,25 +2264,25 @@ function initialize() {
 			} else if(el.msRequestFullscreen) {
 				el.msRequestFullscreen();
 			}
-		} 
-		
+		}
+
   }
-	
+
 	fullsbutton.addEventListener('click', screen_mode, false);
-	
-	
-	
-	
+
+
+
+
 	zoomdiv = document.getElementsByClassName('ol-zoom ol-unselectable ol-control')[0];
 	zoomdiv.appendChild(fullsbutton);
 	zoomdiv.appendChild(mapbutton);
 	zoomdiv.appendChild(northbutton);
 	zoomdiv.appendChild(divInfo);
-	
+
 	// displays credits over the list
 	credits = document.getElementsByClassName('ol-attribution ol-unselectable ol-control')[0];
 	credits.style.zIndex = "1000";
-		
+
 	// parameter m= map type
 	if (typeof(parh.m) != 'undefined') {
 		map_id = parseInt(parh.m);
@@ -2278,27 +2291,27 @@ function initialize() {
   }
 
 
-	
+
 
 
 	/* *
   // parameter z=  zoom level
   if (typeof(parh.z) != 'undefined') map.setZoom(parseInt(parh.z));
-	*/ 
+	*/
 	if (typeof(parh.z) != 'undefined') map.getView().setZoom(parseInt(parh.z));
-	
+
 
 	// overlay to display coordinate on a right-clic
 	lonlatoverlay = new ol.Overlay({
     element: document.getElementById('lonlatoverlay'),
     positioning: 'bottom-center'
     });
-			
-	map.addOverlay(lonlatoverlay);
-	
 
-	
-	
+	map.addOverlay(lonlatoverlay);
+
+
+
+
 
   divInfoac = document.createElement("div");
   divInfoac.id = "divInfoac";
@@ -2312,19 +2325,19 @@ function initialize() {
   divInfoac.style.display = "none";
   divInfoac.appendChild(document.createTextNode("..."));
 	autoc = "";
-	
+
 	coverlay = document.getElementsByClassName('ol-overlaycontainer-stopevent')[0];
 	coverlay.appendChild(divInfoac);
-	
-	document.getElementById("divInfoac").addEventListener("click", function(){ 
+
+	document.getElementById("divInfoac").addEventListener("click", function(){
 		document.getElementById("divInfoac").innerHTML = "&nbsp;";
     autoc = "";
     document.getElementById("divInfoac").style.display = "none";
-	}); 
-	
-		
+	});
 
-	
+
+
+
   document.getElementById("ett1").innerHTML = ett1;
   document.getElementById("ett2").innerHTML = "<TABLE class=\"tt\"><TR width=\"12\"><TH class=\"cgv\" ondblclick=\"allmarker();\"><IMG src='" + tld + "/pict/ico.png'></TH><TH class=\"cgv\" ondblclick=\"allpath();\"><IMG src='" + tld + "/pict/tra.gif'></TH><TH class=\"cgn\" onclick=\"tricn();\">CN</TH><TH class=\"cgc\" ondblclick=\"deleteallpath();\"><IMG border =\"0\" src='" + tld + "/pict/a.gif'></TH><TH class=\"cga\" onclick=\"trialti();\">Alti.</TH><TH class=\"cgz\">Vz</TH></TR></table>";
   document.getElementById("ac").innerHTML = "<span style=\"color: #333; font-weight: bold; font-size: 1.1em; line-height: 1.3em;\">&nbsp;&nbsp;&nbsp;..::Aircraft::..</span><BR><span class=\"act\">CN: </span><span id=\"accn\" class=\"aca\"></span><BR><DIV id=\"ac1\"><span class=\"act\">Regist.: </span><span id=\"acre\" class=\"aca\"></span><BR></DIV><span class=\"act\">Device Id: </span><span id=\"acfi\" class=\"aca\"></span><BR><span class=\"act\">Type: </span><span id=\"acty\" class=\"aca\"></span><BR><DIV id=\"ac2\"><span class=\"act\">Model: </span><span id=\"acmo\" class=\"aca\"></span></DIV><span class=\"act\">Last time: </span><span id=\"aclt\" class=\"aca\"></span><BR><span class=\"act\">Latitude: </span><span id=\"acla\" class=\"aca\"></span><BR><span class=\"act\">Longitude: </span><span id=\"aclo\" class=\"aca\"></span><BR><span class=\"act\">Altitude: </span><span id=\"acal\" class=\"aca\"></span><BR><span class=\"act\">G.Speed: </span><span id=\"acsp\" class=\"aca\"></span><BR><span class=\"act\">Track: </span><span id=\"actr\" class=\"aca\"></span><span class=\"aca\">&thinsp;&deg;</span><BR><span class=\"act\">Vz: </span><span id=\"acvz\" class=\"aca\"></span><BR><span class=\"act\">Receiver: </span><span id=\"acrx\" class=\"aca\"></span><BR><span id=\"acif\" class=\"aca\"></span>";
@@ -2366,7 +2379,7 @@ function initialize() {
         case 't': // temperature
           document.getElementById('tembox').checked = true;
           tempe();
-          break;				
+          break;
         case 'v': // wind
           document.getElementById('winbox').checked = true;
           wind();
@@ -2378,7 +2391,7 @@ function initialize() {
         case 'n': // precipitation
           document.getElementById('raibox').checked = true;
           rain();
-          break;					
+          break;
         case 'z': // airspace
           document.getElementById('aspbox').checked = true;
           asp();
@@ -2434,7 +2447,7 @@ function initialize() {
     op(300);
   }
 
-  
+
 
   // parameter u=i units imperial ou metric (default))
   if (typeof(parh.u) != 'undefined') {
@@ -2505,7 +2518,7 @@ function initialize() {
 
   rehash();
   checkrec();
-	
+
 
 	const body = document.querySelector('body');
 	body.onkeydown = function(e) {
@@ -2517,13 +2530,15 @@ function initialize() {
 				onofff();
 			}
 		}
-		
+
 	};
-	
-	
+
+
   tmwd = setTimeout(wd, 30000);
   if (gmdelay == 0) gesmark();
 
   // barogram plotting
-  baro_Init();
+    baro_Init();
+
+    websocketInit();
 }

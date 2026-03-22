@@ -1,8 +1,10 @@
-use std::io::{BufRead as _, Error};
+use std::collections::HashMap;
+use std::io::{BufRead as _, Error, Read, Seek};
 
 use aprs::{PositionReport, Report};
 use clap::Parser;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
+use ogn::ddb::Device;
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::broadcast,
@@ -22,9 +24,28 @@ struct Args {
 
 struct ReportFormatter {
     pub receiver: String,
+    pub database: HashMap<String, Device>,
 }
 
 impl ReportFormatter {
+    pub async fn new(receiver: String) -> Self {
+        Self {
+            receiver,
+            database: Self::get_ogn_ddb().await,
+        }
+    }
+
+    async fn get_ogn_ddb() -> HashMap<String, Device> {
+        use ogn::ddb::{index_by_id, read_database, OGN_DDB_URL};
+        let body = reqwest::get(OGN_DDB_URL)
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        read_database(body.as_bytes()).map(index_by_id).unwrap()
+    }
+
     /// Output in this format:
     /// ```
     /// <m a="46.1,5.1,OI,G-EZOI,2371,11:16:45,20,135,482,0.0,0,Grenoble,0,d4de7516"/>
@@ -41,22 +62,28 @@ impl ReportFormatter {
         log::debug!("Formatting {report:?}");
         let position = report.point();
         let id = report.id();
+        let device = id.as_ref().and_then(|i| self.database.get(&i[2..]));
+        if let Some(device) = device {
+            log::debug!("Device is {device:?}");
+        }
         let id = id.as_deref().unwrap_or("").to_ascii_lowercase();
-        let immat = &id;
-        let short_immat = if id.is_empty() {
+        let immat = device.map(|d| &d.registration).unwrap_or(&id);
+        let short_immat = if let Some(device) = device {
+            device.common_name.clone()
+        } else if immat.len() < 2 {
             "??".to_string()
         } else {
             format!(
                 "_{}{}",
-                id.chars().nth(0).unwrap(),
-                id.chars().nth(id.len() - 1usize).unwrap()
+                id.chars().nth(id.len() - 2).unwrap(),
+                id.chars().nth(id.len() - 1).unwrap()
             )
         };
         let alt_m = report.altitude().unwrap_or(0.) * 0.3048;
         format!(
-            r#"<?xm version="1.0 encoding="UTF-8">
+            r#"<?xml version="1.0" encoding="UTF-8"?>
 <markers>
-<m a="{lat},{lon},{short_immat},{immat},{alt},{time},0,{track},{gs},{vz},{typ},{recv},{shown_id},{id}"/>
+<m a="{lat:.5},{lon:.5},{short_immat},{immat},{alt},{time},0,{track},{gs},{vz},{typ},{recv},{shown_id},{id}"/>
 </markers>"#,
             lat = position.y(),
             lon = position.x(),
@@ -71,15 +98,20 @@ impl ReportFormatter {
             track = report.course().unwrap_or(0),
             // TODO Check unit
             gs = report.speed().unwrap_or(0.) * 1.852,
-            vz = report.climb_rate().unwrap_or(0.),
-            typ = Self::guess_type(&report.symbol),
+            vz = report.climb_rate().unwrap_or(0.) * 0.00508,
+            typ = Self::guess_type(&report.symbol, device),
             recv = self.receiver,
-            shown_id = id,
+            shown_id = device.map(|d| &d.id).unwrap_or(&id),
             id = id,
         )
     }
 
-    fn guess_type(symbol: &[u8; 2]) -> i32 {
+    fn guess_type(symbol: &[u8; 2], device: Option<&Device>) -> i32 {
+        // TODO Find a more correct heuristic...
+        if device.is_some() {
+            return 1;
+        }
+
         match [symbol[0] as char, symbol[1] as char] {
             ['/', 'g'] => 1,
             _ => 0,
@@ -92,9 +124,7 @@ async fn main() -> Result<(), Error> {
     let _ = env_logger::try_init();
     let args = Args::parse();
 
-    let formatter = ReportFormatter {
-        receiver: "LFQD".to_string(),
-    };
+    let formatter = ReportFormatter::new("LFQD (real-time)".to_owned()).await;
 
     let (s, r) = broadcast::channel(16);
     tokio::spawn(read_file_slowly(args.file, s, formatter));
@@ -116,13 +146,16 @@ async fn read_file_slowly(
     formatter: ReportFormatter,
 ) {
     let file = std::fs::File::open(path).unwrap();
-    let reader = std::io::BufReader::new(file);
-    for line in reader.lines() {
-        let line = line.unwrap();
-        if let Ok(Report::PositionReport(report)) = line.parse::<Report>() {
-            sender.send(formatter.format(&report)).unwrap();
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    let mut reader = std::io::BufReader::new(file);
+    loop {
+        for line in reader.by_ref().lines() {
+            let line = line.unwrap();
+            if let Ok(Report::PositionReport(report)) = line.parse::<Report>() {
+                sender.send(formatter.format(&report)).unwrap();
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
         }
+        reader.seek(std::io::SeekFrom::Start(0)).unwrap();
     }
 }
 
