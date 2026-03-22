@@ -1,8 +1,8 @@
 use std::io::{BufRead as _, Error};
 
+use aprs::{PositionReport, Report};
 use clap::Parser;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
-use log::info;
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::broadcast,
@@ -20,18 +20,89 @@ struct Args {
     file: String,
 }
 
+struct ReportFormatter {
+    pub receiver: String,
+}
+
+impl ReportFormatter {
+    /// Output in this format:
+    /// ```
+    /// <m a="46.1,5.1,OI,G-EZOI,2371,11:16:45,20,135,482,0.0,0,Grenoble,0,d4de7516"/>
+    /// ```
+    /// Lat,Lon,Imat Short, Imat, Alt(m), Last heard time (which TZ?),ddf,Track,Ground speed (km/h),Vz (m/s),Type,Receiver,shownId,id
+    /// ddf = secs since last heard?
+    /// Type 0 = unknown
+    /// Type 1 = Glider/Motorglider
+    /// Type 3 = Helicopter
+    /// Type 6 = Handglider
+    /// See ogn.js "ftype" for the rest.
+    ///
+    pub fn format(&self, report: &PositionReport) -> String {
+        log::debug!("Formatting {report:?}");
+        let position = report.point();
+        let id = report.id();
+        let id = id.as_deref().unwrap_or("").to_ascii_lowercase();
+        let immat = &id;
+        let short_immat = if id.is_empty() {
+            "??".to_string()
+        } else {
+            format!(
+                "_{}{}",
+                id.chars().nth(0).unwrap(),
+                id.chars().nth(id.len() - 1usize).unwrap()
+            )
+        };
+        let alt_m = report.altitude().unwrap_or(0.) * 0.3048;
+        format!(
+            r#"<?xm version="1.0 encoding="UTF-8">
+<markers>
+<m a="{lat},{lon},{short_immat},{immat},{alt},{time},0,{track},{gs},{vz},{typ},{recv},{shown_id},{id}"/>
+</markers>"#,
+            lat = position.y(),
+            lon = position.x(),
+            short_immat = short_immat,
+            immat = immat,
+            alt = alt_m,
+            time = report
+                .timestamp
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_default(),
+            track = report.course().unwrap_or(0),
+            // TODO Check unit
+            gs = report.speed().unwrap_or(0.) * 1.852,
+            vz = report.climb_rate().unwrap_or(0.),
+            typ = Self::guess_type(&report.symbol),
+            recv = self.receiver,
+            shown_id = id,
+            id = id,
+        )
+    }
+
+    fn guess_type(symbol: &[u8; 2]) -> i32 {
+        match [symbol[0] as char, symbol[1] as char] {
+            ['/', 'g'] => 1,
+            _ => 0,
+        }
+    }
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Error> {
     let _ = env_logger::try_init();
     let args = Args::parse();
 
-    let (s, mut r) = broadcast::channel(16);
-    tokio::spawn(read_file_slowly(args.file, s));
+    let formatter = ReportFormatter {
+        receiver: "LFQD".to_string(),
+    };
+
+    let (s, r) = broadcast::channel(16);
+    tokio::spawn(read_file_slowly(args.file, s, formatter));
 
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&args.listen).await;
     let listener = try_socket.expect("Failed to bind");
-    info!("Listening on: {}", args.listen);
+    log::info!("Listening on: {}", args.listen);
 
     while let Ok((stream, _)) = listener.accept().await {
         tokio::spawn(accept_connection(stream, r.resubscribe()));
@@ -39,14 +110,19 @@ async fn main() -> Result<(), Error> {
 
     Ok(())
 }
-
-async fn read_file_slowly(path: String, sender: broadcast::Sender<String>) {
+async fn read_file_slowly(
+    path: String,
+    sender: broadcast::Sender<String>,
+    formatter: ReportFormatter,
+) {
     let file = std::fs::File::open(path).unwrap();
     let reader = std::io::BufReader::new(file);
     for line in reader.lines() {
         let line = line.unwrap();
-        sender.send(line).unwrap();
-        tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+        if let Ok(Report::PositionReport(report)) = line.parse::<Report>() {
+            sender.send(formatter.format(&report)).unwrap();
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        }
     }
 }
 
@@ -77,10 +153,11 @@ async fn accept_connection(stream: TcpStream, mut receiver: broadcast::Receiver<
             to_send = receiver.recv() => {
                 match to_send {
                     Ok(m) => write.send(Message::Text(m.into())).await.expect("Should send"),
-                    Err(e) => {
-                        log::error!("Could not receive message from channel: {e:?}");
+                    Err(broadcast::error::RecvError::Closed) => {
+                        write.send(Message::Close(None)).await.expect("Should send");
                         break;
-                    },
+                    }
+                    Err(broadcast::error::RecvError::Lagged(_)) => (),
                 }
             },
         }
