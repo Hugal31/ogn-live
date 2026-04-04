@@ -14,6 +14,9 @@ use tokio_tungstenite::tungstenite::{
     Message,
 };
 
+const KNOTS_TO_KMH: f64 = 1.852;
+const FPM_TO_MPS: f64 = 0.00508;
+
 #[derive(Parser, Debug)]
 struct Args {
     #[arg(short, long, default_value = "127.0.0.1:8080")]
@@ -96,9 +99,8 @@ impl ReportFormatter {
                 .map(ToString::to_string)
                 .unwrap_or_default(),
             track = report.course().unwrap_or(0),
-            // TODO Check unit
-            gs = report.speed().unwrap_or(0.) * 1.852,
-            vz = report.climb_rate().unwrap_or(0.) * 0.00508,
+            gs = report.speed().unwrap_or(0.) as f64 * KNOTS_TO_KMH,
+            vz = report.climb_rate().unwrap_or(0.) * FPM_TO_MPS,
             typ = Self::guess_type(&report.symbol, device),
             recv = self.receiver,
             shown_id = device.map(|d| &d.id).unwrap_or(&id),
