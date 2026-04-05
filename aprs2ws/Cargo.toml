@@ -12,5 +12,6 @@ futures-util = "0.3"
 log = "0.4"
 ogn = { version = "0.1", git = "https://github.com/Hugal31/FlightLogR.git" }
 reqwest = "0.13"
+systemd = "0.10"
 tokio = { version = "1.50", features = ["macros", "net", "rt", "sync", "time"] }
 tokio-tungstenite = "0.29"

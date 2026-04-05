@@ -3,26 +3,31 @@ use std::io::{BufRead as _, Error, Read, Seek};
 use anyhow::Result;
 use aprs::Report;
 use clap::Parser;
-use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
+use futures_util::{SinkExt, StreamExt, TryStreamExt, future};
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::broadcast,
+    task::LocalSet,
 };
 use tokio_tungstenite::tungstenite::{
-    error::{Error as TsError, ProtocolError},
     Message,
+    error::{Error as TsError, ProtocolError},
 };
 
 mod formatter;
+mod journal;
 
 use formatter::ReportFormatter;
+use journal::{read_journal, watch_journal};
 
 #[derive(Parser, Debug)]
 struct Args {
     #[arg(short, long, default_value = "127.0.0.1:8080")]
     listen: String,
     #[arg(short, long, help = "APRS to read, for debugging purposes.")]
-    file: String,
+    file: Option<String>,
+    #[arg(short, long, help = "Unit to filter on when reading from the journal.")]
+    unit: Option<String>,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -33,16 +38,35 @@ async fn main() -> Result<(), Error> {
     let formatter = ReportFormatter::new("LFQD (real-time)".to_owned()).await;
 
     let (s, r) = broadcast::channel(16);
-    tokio::spawn(read_file_slowly(args.file, s, formatter));
 
-    // Create the event loop and TCP listener we'll accept connections on.
-    let try_socket = TcpListener::bind(&args.listen).await;
-    let listener = try_socket.expect("Failed to bind");
-    log::info!("Listening on: {}", args.listen);
+    let local_set = LocalSet::new();
 
-    while let Ok((stream, _)) = listener.accept().await {
-        tokio::spawn(accept_connection(stream, r.resubscribe()));
+    if let Some(file) = args.file {
+        if file.ends_with(".journal") {
+            local_set.spawn_local(read_journal(file, s, formatter, args.unit));
+        } else {
+            local_set.spawn_local(read_file_slowly(file, s, formatter));
+        }
+    } else {
+        local_set.spawn_local(async {
+            if let Err(e) = watch_journal(s, formatter, args.unit).await {
+                log::error!("Error reading the journal: {e}");
+            }
+        });
     }
+
+    local_set.spawn_local(async move {
+        // Create the event loop and TCP listener we'll accept connections on.
+        let try_socket = TcpListener::bind(&args.listen).await;
+        let listener = try_socket.expect("Failed to bind");
+        log::info!("Listening on: {}", args.listen);
+
+        while let Ok((stream, _)) = listener.accept().await {
+            tokio::spawn(accept_connection(stream, r.resubscribe()));
+        }
+    });
+
+    local_set.await;
 
     Ok(())
 }
