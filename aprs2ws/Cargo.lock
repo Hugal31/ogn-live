@@ -109,7 +109,7 @@ dependencies = [
 [[package]]
 name = "aprs"
 version = "0.1.0"
-source = "git+https://github.com/Hugal31/FlightLogR.git#2255a7aeed360236c45aa53ed99b8c43f911e84a"
+source = "git+https://github.com/Hugal31/FlightLogR.git#8151fd10f48a175ba54affa4afbd73884a282122"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1428,7 +1428,7 @@ dependencies = [
 [[package]]
 name = "ogn"
 version = "0.1.0"
-source = "git+https://github.com/Hugal31/FlightLogR.git#2255a7aeed360236c45aa53ed99b8c43f911e84a"
+source = "git+https://github.com/Hugal31/FlightLogR.git#8151fd10f48a175ba54affa4afbd73884a282122"
 dependencies = [
  "anyhow",
  "csv",

@@ -8,7 +8,7 @@ const FPM_TO_MPS: f64 = 0.00508;
 
 pub struct ReportFormatter {
     pub receiver: String,
-    pub database: HashMap<String, Device>,
+    pub database: HashMap<u32, Device>,
 }
 
 impl ReportFormatter {
@@ -19,8 +19,8 @@ impl ReportFormatter {
         }
     }
 
-    async fn get_ogn_ddb() -> HashMap<String, Device> {
-        use ogn::ddb::{OGN_DDB_URL, index_by_id, read_database};
+    async fn get_ogn_ddb() -> HashMap<u32, Device> {
+        use ogn::ddb::{index_by_id, read_database, OGN_DDB_URL};
         let body = reqwest::get(OGN_DDB_URL)
             .await
             .unwrap()
@@ -36,17 +36,16 @@ impl ReportFormatter {
     /// ```
     /// Lat,Lon,Imat Short, Imat, Alt(m), Last heard time (which TZ?),ddf,Track,Ground speed (km/h),Vz (m/s),Type,Receiver,shownId,id
     /// ddf = secs since last heard?
-    /// Type 0 = unknown
-    /// Type 1 = Glider/Motorglider
-    /// Type 3 = Helicopter
-    /// Type 6 = Handglider
-    /// See ogn.js "ftype" for the rest.
     ///
     pub fn format(&self, report: &PositionReport) -> String {
         log::debug!("Formatting {report:?}");
         let position = report.point();
         let id = report.id();
-        let device = id.as_ref().and_then(|i| self.database.get(&i[2..]));
+        let (device, beacon) = if let Some(ref id) = id && let Ok(beacon) = id.parse::<ogn::Beacon>() {
+            (self.database.get(&beacon.address), Some(beacon))
+        } else {
+            (None, None)
+        };
         if let Some(device) = device {
             log::debug!("Device is {device:?}");
         }
@@ -82,22 +81,10 @@ impl ReportFormatter {
             track = report.course().unwrap_or(0),
             gs = report.speed().unwrap_or(0.) as f64 * KNOTS_TO_KMH,
             vz = report.climb_rate().unwrap_or(0.) * FPM_TO_MPS,
-            typ = Self::guess_type(&report.symbol, device),
+            typ = beacon.as_ref().map(|b| b.aircraft_type.into()).unwrap_or(0),
             recv = self.receiver,
-            shown_id = device.map(|d| &d.id).unwrap_or(&id),
+            shown_id = beacon.map(|b| if b.no_tracking { "0".to_owned() } else { format!("{:X}", b.address) }).unwrap_or(id.clone()),
             id = id,
         )
-    }
-
-    fn guess_type(symbol: &[u8; 2], device: Option<&Device>) -> i32 {
-        // TODO Find a more correct heuristic...
-        if device.is_some() {
-            return 1;
-        }
-
-        match [symbol[0] as char, symbol[1] as char] {
-            ['/', 'g'] => 1,
-            _ => 0,
-        }
     }
 }
