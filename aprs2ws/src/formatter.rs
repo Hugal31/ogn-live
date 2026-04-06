@@ -20,7 +20,7 @@ impl ReportFormatter {
     }
 
     async fn get_ogn_ddb() -> HashMap<u32, Device> {
-        use ogn::ddb::{index_by_id, read_database, OGN_DDB_URL};
+        use ogn::ddb::{OGN_DDB_URL, index_by_id, read_database};
         let body = reqwest::get(OGN_DDB_URL)
             .await
             .unwrap()
@@ -41,7 +41,9 @@ impl ReportFormatter {
         log::debug!("Formatting {report:?}");
         let position = report.point();
         let id = report.id();
-        let (device, beacon) = if let Some(ref id) = id && let Ok(beacon) = id.parse::<ogn::Beacon>() {
+        let (device, beacon) = if let Some(ref id) = id
+            && let Ok(beacon) = id.parse::<ogn::Beacon>()
+        {
             (self.database.get(&beacon.address), Some(beacon))
         } else {
             (None, None)
@@ -83,7 +85,13 @@ impl ReportFormatter {
             vz = report.climb_rate().unwrap_or(0.) * FPM_TO_MPS,
             typ = beacon.as_ref().map(|b| b.aircraft_type.into()).unwrap_or(0),
             recv = self.receiver,
-            shown_id = beacon.map(|b| if b.no_tracking { "0".to_owned() } else { format!("{:X}", b.address) }).unwrap_or(id.clone()),
+            shown_id = beacon
+                .map(|b| if b.no_tracking {
+                    "0".to_owned()
+                } else {
+                    format!("{:X}", b.address)
+                })
+                .unwrap_or(id.clone()),
             id = id,
         )
     }

@@ -83,17 +83,20 @@ fn process_journal_entry(
     formatter: &ReportFormatter,
 ) -> Result<()> {
     if let Some(field) = journal.get_data("MESSAGE")?
-        && let Some(Ok(message)) = field.value().map(std::str::from_utf8) {
-            const APRS_MARKER: &str = "APRS <- ";
-            log::debug!("msg: {message}");
-            if let Some(aprs_msg) = message.strip_prefix(APRS_MARKER) && let Ok(report) = aprs_msg.parse::<Report>() {
-                log::debug!("Got report {report:?}");
+        && let Some(Ok(message)) = field.value().map(std::str::from_utf8)
+    {
+        const APRS_MARKER: &str = "APRS <- ";
+        log::debug!("msg: {message}");
+        if let Some(aprs_msg) = message.strip_prefix(APRS_MARKER)
+            && let Ok(report) = aprs_msg.parse::<Report>()
+        {
+            log::debug!("Got report {report:?}");
 
-                    if let Report::PositionReport(report) = report {
-                        sender.send(formatter.format(&report))?;
-                    }
+            if let Report::PositionReport(report) = report {
+                sender.send(formatter.format(&report))?;
             }
         }
+    }
 
     Ok(())
 }
