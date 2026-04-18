@@ -1,0 +1,9 @@
+[env]
+# To compile to aarch64, copy the libsystemd.so.* from an aarch64 system to target/systemd,
+# and to make sure you have a symlink from libsystemd.so to libsystemd.so.0.XX.Y.
+SYSTEMD_LIB_DIR_aarch64-unknown-linux-gnu = { value = "target/systemd", relative = true }
+#SYSTEMD_LIBS_aarch64-unknown-linux-gnu = "systemd" # { value = "target/systemd/libsystemd.so.0.40.0", relative = true }
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = ["-Clink-arg=-fuse-ld=lld"]
+linker = "aarch64-linux-gnu-gcc"
